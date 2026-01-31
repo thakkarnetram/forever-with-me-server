@@ -6,7 +6,7 @@ const authRouter = require('./src/routers/authRouter')
 
 const app = express();
 app.use(body_parser.json())
-app.use(cors)
+app.use(cors())
 
 // routers
 app.use('/',authRouter)

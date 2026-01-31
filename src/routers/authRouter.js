@@ -3,11 +3,11 @@ const authController = require('../controllers/authController')
 const router = express.Router();
 
 router
-    .route('/api/v1/signup')
-    .post(authController.signup)
+    .route('/api/v1/start-auth')
+    .post(authController.startAuth)
 
 router
-    .route('/api/v1/login')
-    .post(authController.login)
+    .route('/api/v1/verify-otp')
+    .post(authController.verifyOtp)
 
 module.exports = router;

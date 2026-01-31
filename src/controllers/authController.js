@@ -1,53 +1,60 @@
 const User = require("../models/user")
-const bcrypt = require("bcrypt")
+const Otp = require("../models/otp")
 const jwt = require("jsonwebtoken");
+const {sendOtp} = require("../utils/emailSender");
 
-const signToken = email => {
+const signToken = userId => {
     return jwt.sign({
-        email,
+        userId,
     },process.env.SECRET_KEY)
 }
 
-exports.signup = async (req,res) => {
+const generateOtp = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+exports.startAuth = async (req,res) => {
     try {
-        const {email,name,password,invitedBy} = req.body;
-        const hash =  await bcrypt.hash(password,10)
-        const user = User.create({
+        const {email} = req.body;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if(!email) {
+            return res.status(400).json({message:"Email is required"})
+        }
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({message:"Enter valid email"})
+        }
+        const otp = generateOtp();
+        await Otp.create({
             email,
-            name,
-            password:hash,
-            invitedBy
+            otp,
+            isUsed:false,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
         })
-        await user.save()
-        return res.status(201).json({
-            user
-        })
+        await sendOtp(email,otp)
+        return res.status(200).json({ok:true})
     } catch (err) {
-        return res.status(501).json({message:err})
+        return res.status(500).json({message:err})
     }
 }
 
-exports.login = async (req,res) => {
+exports.verifyOtp = async (req,res) => {
     try {
-        const {email,password} = req.body;
-        if(!email || !password) {
-            return res.status(400).json({message:"Email and password is required"})
+        const {email,otp} = req.body;
+        if(!email || !otp) {
+            return res.status(400).json({ message: "Missing details" });
         }
-        const user = await User.findOne({email})
-        if(!user) {
-            return res.status(404).json({message:"User not found"})
+        const record = await Otp.findOne({email,otp});
+        if (!record || record.expiresAt < Date.now()) {
+            return res.status(401).json({ message: "That doesn’t seem right. Try again." });
         }
-        const matchPassword = await bcrypt.compare(password,user.password)
-        if(matchPassword) {
-            const token = signToken(email)
-            return res.status(200).json({
-                message:"Login Successful",
-                token
-            })
-        } else {
-            return res.status(401).json({message: "Invalid password"});
+        await Otp.deleteMany({ email });
+        let user = await User.findOne({ email });
+        if (!user) {
+            user = await User.create({ email });
         }
+        const token = signToken(user._id);
+        return res.status(200).json({ token });
     } catch (err) {
-        return res.status(501).json({message:err})
+        return res.status(500).json({message:err})
     }
 }
