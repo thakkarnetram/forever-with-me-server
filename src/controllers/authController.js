@@ -2,6 +2,7 @@ const User = require("../models/user")
 const Otp = require("../models/otp")
 const jwt = require("jsonwebtoken");
 const {sendOtp} = require("../utils/emailSender");
+const util = require("node:util");
 
 const signToken = userId => {
     return jwt.sign({
@@ -56,5 +57,30 @@ exports.verifyOtp = async (req,res) => {
         return res.status(200).json({ token });
     } catch (err) {
         return res.status(500).json({message:err})
+    }
+}
+
+exports.protectRouter = async (req,res,next) => {
+    try {
+        const token = req.headers.authorization;
+        let jwtToken;
+        if(!token){
+            return res.status(400).json({message:"Authorization Missing"})
+        }
+        if(token&&token.startsWith("Bearer ")) {
+            jwtToken = token.split(" ")[1];
+        }
+        const decodedToken = await util.promisify(jwt.verify)(
+            jwtToken,
+            process.env.SECRET_KEY
+        )
+        const user = await User.findOne({_id:decodedToken._id});
+        if(!user) {
+            res.status(404).json({message:"User not found"})
+        }
+        req.user = user;
+        next();
+    } catch (err) {
+        res.status(500).json({message:err.message})
     }
 }
