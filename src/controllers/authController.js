@@ -74,9 +74,9 @@ exports.protectRouter = async (req,res,next) => {
             jwtToken,
             process.env.SECRET_KEY
         )
-        const user = await User.findOne({_id:decodedToken._id});
+        const user = await User.findOne({_id:decodedToken.userId});
         if(!user) {
-            res.status(404).json({message:"User not found"})
+            return res.status(404).json({message:"User not found"})
         }
         req.user = user;
         next();

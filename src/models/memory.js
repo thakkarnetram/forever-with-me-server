@@ -7,8 +7,8 @@ const memorySchema =  new mongoose.Schema({
     imageUrl:{
         type:String
     },
-    date : {
-        type:Date
+    memoryDate:{
+      type:Date,
     },
     reminderDate:{
         type:Date
@@ -23,4 +23,4 @@ const memorySchema =  new mongoose.Schema({
 })
 
 const memory = mongoose.model("Memory",memorySchema)
-export default memory;
+module.exports=memory;
