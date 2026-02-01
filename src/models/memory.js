@@ -20,7 +20,7 @@ const memorySchema =  new mongoose.Schema({
     specialNote:{
         type:String
     }
-})
+},  { timestamps: true })
 
 const memory = mongoose.model("Memory",memorySchema)
 module.exports=memory;
